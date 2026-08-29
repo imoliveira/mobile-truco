@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Truco-Play",
+    "slug": "mobile-truco",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0f172a",
+    "splash": {
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.imoliveira.mobiletruco"
+    },
+    "android": {
+      "package": "com.imoliveira.mobiletruco",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a"
+      }
+    }
+  }
+}
