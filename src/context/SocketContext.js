@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 
 // TODO (Fase 5): trocar pela URL pública do backend depois que ele estiver
 // publicado (Render). Por enquanto aponta pro placeholder combinado.
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://troque-esta-url.onrender.com';
+export const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://troque-esta-url.onrender.com';
 
 const SocketContext = createContext(null);
 
