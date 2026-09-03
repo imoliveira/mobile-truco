@@ -1,9 +1,35 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Animated, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSocket } from '../context/SocketContext';
 import Card from '../components/Card';
 import PlayerSlot from '../components/PlayerSlot';
 import GameControls from '../components/GameControls';
+
+const QUICK_EMOTES = ['🦆', '🙈', '🤫', '🤡', '🤬'];
+
+const FloatingEmote = ({ emote, onComplete }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.spring(anim, { toValue: 1, tension: 40, friction: 4, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(anim, { toValue: 0, duration: 500, useNativeDriver: true })
+    ]).start(() => onComplete(emote.id));
+  }, []);
+
+  return (
+    <Animated.Text style={[styles.floatingEmote, {
+      opacity: anim,
+      transform: [
+        { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.1, 1.2] }) },
+        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [50, -150] }) }
+      ]
+    }]}>
+      {emote.emoji}
+    </Animated.Text>
+  );
+};
 
 export default function TableScreen({ route, navigation }) {
   const { tableId } = route.params;
@@ -11,27 +37,27 @@ export default function TableScreen({ route, navigation }) {
 
   const [table, setTable] = useState(null);
   const [hand, setHand] = useState([]);
-  const [playedCards, setPlayedCards] = useState([]); // Cartas no centro
+  const [playedCards, setPlayedCards] = useState([]);
   const [myTurn, setMyTurn] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
   const [isHidingCard, setIsHidingCard] = useState(false);
-  const [trucoRequest, setTrucoRequest] = useState(null); // { from, value, timeLeft }
+  const [trucoRequest, setTrucoRequest] = useState(null);
+
+  // Chat & Emote states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [inputText, setInputText] = useState('');
+  const [activeEmotes, setActiveEmotes] = useState([]);
+  const scrollViewRef = useRef();
 
   const handRef = useRef(hand);
   const trucoRequestRef = useRef(trucoRequest);
-  
-  // Animação de distribuição
   const dealAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    handRef.current = hand;
-  }, [hand]);
+  useEffect(() => { handRef.current = hand; }, [hand]);
+  useEffect(() => { trucoRequestRef.current = trucoRequest; }, [trucoRequest]);
 
-  useEffect(() => {
-    trucoRequestRef.current = trucoRequest;
-  }, [trucoRequest]);
-
-  // Timer para jogada normal
+  // Timer jogada
   useEffect(() => {
     let interval;
     if (myTurn && !trucoRequest) {
@@ -40,7 +66,6 @@ export default function TableScreen({ route, navigation }) {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            // Auto play
             const currentHand = handRef.current;
             if (currentHand.length > 0) {
               const randomIndex = Math.floor(Math.random() * currentHand.length);
@@ -57,7 +82,7 @@ export default function TableScreen({ route, navigation }) {
     return () => clearInterval(interval);
   }, [myTurn, trucoRequest]);
 
-  // Timer para pedido de truco
+  // Timer truco
   useEffect(() => {
     let interval;
     if (trucoRequest) {
@@ -66,7 +91,6 @@ export default function TableScreen({ route, navigation }) {
           if (!prev) return null;
           if (prev.timeLeft <= 1) {
             clearInterval(interval);
-            // Tempo esgotado para responder ao truco: Correr automático
             socket.emit('respond_truco', { tableId, accepted: false });
             return null;
           }
@@ -99,7 +123,6 @@ export default function TableScreen({ route, navigation }) {
       setIsHidingCard(false);
       setTrucoRequest(null);
       
-      // Reseta a animação e inicia
       dealAnim.setValue(0);
       Animated.spring(dealAnim, {
         toValue: 1,
@@ -119,21 +142,31 @@ export default function TableScreen({ route, navigation }) {
       }
     });
 
+    // Chat events
+    socket.on('receive_message', (msg) => {
+      setChatMessages(prev => [...prev, msg]);
+    });
+
+    socket.on('receive_emote', (data) => {
+      const newEmote = { id: Date.now().toString() + Math.random(), emoji: data.emoji, user: data.user };
+      setActiveEmotes(prev => [...prev, newEmote]);
+    });
+
     return () => {
       socket.emit('leave_table', tableId);
       socket.off('table_update');
       socket.off(`deal_cards_${username}`);
       socket.off('card_played');
       socket.off('truco_requested');
+      socket.off('receive_message');
+      socket.off('receive_emote');
     };
   }, [socket, tableId, username, dealAnim]);
 
   const handlePlayCard = (card, index) => {
     if (!myTurn || trucoRequest) return;
-    
     const cardToPlay = { ...card, hidden: isHidingCard };
     socket.emit('play_card', { tableId, card: cardToPlay });
-    
     setHand(prev => prev.filter((_, i) => i !== index));
     setMyTurn(false);
     setIsHidingCard(false);
@@ -155,6 +188,22 @@ export default function TableScreen({ route, navigation }) {
     ]);
   };
 
+  const handleSendMessage = () => {
+    if (inputText.trim()) {
+      socket.emit('send_message', { tableId, text: inputText.trim() });
+      setInputText('');
+    }
+  };
+
+  const handleSendEmote = (emoji) => {
+    socket.emit('send_emote', { tableId, emoji });
+    setIsChatOpen(false); // Optionally close chat when sending emote
+  };
+
+  const removeEmote = (id) => {
+    setActiveEmotes(prev => prev.filter(e => e.id !== id));
+  };
+
   if (!table) {
     return (
       <View style={styles.loading}>
@@ -164,17 +213,8 @@ export default function TableScreen({ route, navigation }) {
   }
 
   const otherPlayer = table.players.find(p => p.username !== username);
-
-  // Interpolações para animação das cartas
-  const translateY = dealAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-200, 0] // Vem do centro (deck) para a mão
-  });
-  
-  const rotate = dealAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['180deg', '0deg']
-  });
+  const translateY = dealAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 0] });
+  const rotate = dealAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '0deg'] });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -197,6 +237,11 @@ export default function TableScreen({ route, navigation }) {
           isTurn={table.currentTurn === otherPlayer?.username}
         />
 
+        {/* Emotes Animados */}
+        {activeEmotes.map(emote => (
+          <FloatingEmote key={emote.id} emote={emote} onComplete={removeEmote} />
+        ))}
+
         <View style={styles.tableCenter}>
           <View style={styles.cardsRow}>
             {playedCards.map((p, i) => (
@@ -211,7 +256,6 @@ export default function TableScreen({ route, navigation }) {
             <View style={styles.viraContainer}>
                <Text style={styles.viraLabel}>VIRA</Text>
                <View style={styles.deckStack}>
-                 {/* Baralho por cima do vira */}
                  <View style={[styles.stackedCard, { left: -10, top: 4 }]}><Card card={{}} hidden disabled /></View>
                  <View style={[styles.stackedCard, { left: -5, top: 2 }]}><Card card={{}} hidden disabled /></View>
                  <View style={styles.stackedCard}><Card card={{}} hidden disabled /></View>
@@ -251,49 +295,89 @@ export default function TableScreen({ route, navigation }) {
 
         <View style={styles.myHand}>
           {hand.map((card, index) => (
-            <Animated.View 
-              key={index} 
-              style={{ transform: [{ translateY }, { rotate }] }}
-            >
-              <Card
-                card={card}
-                onPress={() => handlePlayCard(card, index)}
-                disabled={!myTurn || trucoRequest}
-              />
+            <Animated.View key={index} style={{ transform: [{ translateY }, { rotate }] }}>
+              <Card card={card} onPress={() => handlePlayCard(card, index)} disabled={!myTurn || trucoRequest} />
             </Animated.View>
           ))}
         </View>
       </View>
+
+      {/* Botão de Chat flutuante */}
+      <TouchableOpacity style={styles.chatButton} onPress={() => setIsChatOpen(true)}>
+        <Text style={styles.chatButtonText}>💬</Text>
+      </TouchableOpacity>
+
+      {/* Overlay de Chat */}
+      {isChatOpen && (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.chatOverlay}>
+          <TouchableOpacity style={styles.chatCloseOverlay} onPress={() => setIsChatOpen(false)} />
+          
+          <View style={styles.chatContainer}>
+            <View style={styles.chatHeader}>
+              <Text style={styles.chatTitle}>Resenha 🗣️</Text>
+              <TouchableOpacity onPress={() => setIsChatOpen(false)}>
+                <Text style={styles.chatCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              style={styles.chatMessages} 
+              ref={scrollViewRef}
+              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+            >
+              {chatMessages.map((msg, i) => (
+                <View key={i} style={[styles.msgBubble, msg.user === username ? styles.msgBubbleSelf : styles.msgBubbleOther]}>
+                  <Text style={styles.msgUser}>{msg.user}</Text>
+                  <Text style={styles.msgText}>{msg.text}</Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.quickEmotesContainer}>
+              {QUICK_EMOTES.map((emoji, i) => (
+                <TouchableOpacity key={i} style={styles.quickEmoteBtn} onPress={() => handleSendEmote(emoji)}>
+                  <Text style={styles.quickEmoteText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.chatInputContainer}>
+              <TextInput
+                style={styles.chatInput}
+                placeholder="Manda a letra..."
+                placeholderTextColor="#64748b"
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={handleSendMessage}
+              />
+              <TouchableOpacity style={styles.chatSendBtn} onPress={handleSendMessage}>
+                <Text style={styles.chatSendBtnText}>➤</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      )}
 
       {/* Overlay de Truco */}
       {trucoRequest && (
         <View style={styles.trucoOverlay}>
           <View style={styles.trucoModal}>
             <Text style={styles.trucoModalTitle}>TRUCO!</Text>
-            <Text style={styles.trucoModalText}>
-              {trucoRequest.from} pediu Truco (Vale {trucoRequest.value})
-            </Text>
-            
+            <Text style={styles.trucoModalText}>{trucoRequest.from} pediu Truco (Vale {trucoRequest.value})</Text>
             <View style={styles.trucoTimerContainer}>
               <Text style={styles.trucoTimerText}>⏳ {trucoRequest.timeLeft}s</Text>
             </View>
-
             <View style={styles.trucoBtns}>
               <TouchableOpacity style={[styles.btn, styles.btnDanger]} onPress={() => handleRespondTruco(false)}>
                 <Text style={styles.btnText}>CORRER</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity style={[styles.btn, styles.btnSuccess]} onPress={() => handleRespondTruco(true)}>
                 <Text style={styles.btnText}>ACEITAR</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.btn, styles.btnWarning]} 
-                onPress={() => {
+              <TouchableOpacity style={[styles.btn, styles.btnWarning]} onPress={() => {
                   handleRequestTruco(trucoRequest.value === 3 ? 6 : trucoRequest.value === 6 ? 9 : 12);
                   setTrucoRequest(null);
-                }}
-              >
+                }}>
                 <Text style={styles.btnText}>AUMENTAR</Text>
               </TouchableOpacity>
             </View>
@@ -308,161 +392,69 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#064e3b' },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' },
   loadingText: { color: '#38bdf8', fontWeight: '700' },
-  header: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
+  header: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.3)' },
   backBtn: { color: '#fff', fontWeight: '700' },
-  scoreBoard: {
-    flexDirection: 'row',
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    gap: 8,
-  },
+  scoreBoard: { flexDirection: 'row', backgroundColor: '#0f172a', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, gap: 8 },
   scoreText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   scoreDivider: { color: '#334155' },
   tableValue: { color: '#fbbf24', fontWeight: '900', fontSize: 12 },
-  felt: {
-    flex: 1,
-    margin: 10,
-    borderRadius: 150,
-    borderWidth: 8,
-    borderColor: '#065f46',
-    backgroundColor: '#14532d',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  tableCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 40,
-  },
-  cardsRow: {
-    flexDirection: 'row',
-    gap: -30,
-  },
-  playedCardWrapper: {
-    alignItems: 'center',
-  },
-  playedBy: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    marginTop: 4,
-  },
-  viraContainer: {
-    alignItems: 'center',
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.1)',
-    paddingLeft: 30,
-    position: 'relative',
-    height: 140,
-    justifyContent: 'flex-end',
-  },
+  felt: { flex: 1, margin: 10, borderRadius: 150, borderWidth: 8, borderColor: '#065f46', backgroundColor: '#14532d', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  tableCenter: { flexDirection: 'row', alignItems: 'center', gap: 40 },
+  cardsRow: { flexDirection: 'row', gap: -30 },
+  playedCardWrapper: { alignItems: 'center' },
+  playedBy: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 4 },
+  viraContainer: { alignItems: 'center', borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)', paddingLeft: 30, position: 'relative', height: 140, justifyContent: 'flex-end' },
   viraLabel: { color: '#fbbf24', fontSize: 10, fontWeight: '900', marginBottom: 4, position: 'absolute', top: -15 },
-  deckStack: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    zIndex: 2,
-    transform: [{ rotate: '15deg' }]
-  },
-  stackedCard: {
-    position: 'absolute',
-  },
-  viraCardWrapper: {
-    zIndex: 1,
-    transform: [{ rotate: '-10deg' }]
-  },
-  myHand: {
-    position: 'absolute',
-    bottom: 20,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  bottomPlayerWrapper: {
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 120,
-  },
-  timerContainer: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  timerText: {
-    color: '#34d399',
-    fontWeight: '900',
-    fontSize: 14,
-  },
-  timerTextDanger: {
-    color: '#ef4444',
-  },
-  trucoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
-  trucoModal: {
-    backgroundColor: '#1e293b',
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    width: '85%',
-    borderWidth: 2,
-    borderColor: '#fbbf24',
-  },
-  trucoModalTitle: {
-    color: '#fbbf24',
-    fontSize: 32,
-    fontWeight: '900',
-    marginBottom: 8,
-  },
-  trucoModalText: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  trucoTimerContainer: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  trucoTimerText: {
-    color: '#ef4444',
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  trucoBtns: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  btn: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-  },
+  deckStack: { position: 'absolute', top: 20, right: 20, zIndex: 2, transform: [{ rotate: '15deg' }] },
+  stackedCard: { position: 'absolute' },
+  viraCardWrapper: { zIndex: 1, transform: [{ rotate: '-10deg' }] },
+  myHand: { position: 'absolute', bottom: 20, flexDirection: 'row', gap: 10 },
+  bottomPlayerWrapper: { alignItems: 'center', position: 'absolute', bottom: 120 },
+  timerContainer: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
+  timerText: { color: '#34d399', fontWeight: '900', fontSize: 14 },
+  timerTextDanger: { color: '#ef4444' },
+  
+  // Floating Emote
+  floatingEmote: { position: 'absolute', fontSize: 80, zIndex: 1000, top: '40%', alignSelf: 'center', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 10 },
+  
+  // Chat Button
+  chatButton: { position: 'absolute', top: 80, right: 20, backgroundColor: '#0f172a', width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#38bdf8', elevation: 5 },
+  chatButtonText: { fontSize: 24 },
+  
+  // Chat Overlay
+  chatOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 90, justifyContent: 'flex-end' },
+  chatCloseOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
+  chatContainer: { backgroundColor: '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: '60%' },
+  chatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  chatTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  chatCloseText: { color: '#ef4444', fontSize: 20, fontWeight: 'bold' },
+  chatMessages: { flex: 1, marginBottom: 12 },
+  msgBubble: { padding: 10, borderRadius: 12, marginBottom: 8, maxWidth: '80%' },
+  msgBubbleSelf: { backgroundColor: '#047857', alignSelf: 'flex-end', borderBottomRightRadius: 2 },
+  msgBubbleOther: { backgroundColor: '#334155', alignSelf: 'flex-start', borderBottomLeftRadius: 2 },
+  msgUser: { color: '#94a3b8', fontSize: 10, marginBottom: 2, fontWeight: 'bold' },
+  msgText: { color: '#fff', fontSize: 14 },
+  
+  quickEmotesContainer: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#334155' },
+  quickEmoteBtn: { padding: 8, backgroundColor: '#0f172a', borderRadius: 20 },
+  quickEmoteText: { fontSize: 24 },
+  
+  chatInputContainer: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
+  chatInput: { flex: 1, backgroundColor: '#0f172a', color: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20 },
+  chatSendBtn: { backgroundColor: '#38bdf8', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  chatSendBtnText: { color: '#0f172a', fontSize: 18, fontWeight: 'bold', marginLeft: 2 },
+
+  // Truco Modal
+  trucoOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
+  trucoModal: { backgroundColor: '#1e293b', padding: 24, borderRadius: 16, alignItems: 'center', width: '85%', borderWidth: 2, borderColor: '#fbbf24' },
+  trucoModalTitle: { color: '#fbbf24', fontSize: 32, fontWeight: '900', marginBottom: 8 },
+  trucoModalText: { color: '#fff', fontSize: 16, marginBottom: 20, textAlign: 'center' },
+  trucoTimerContainer: { backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 8, marginBottom: 20 },
+  trucoTimerText: { color: '#ef4444', fontSize: 20, fontWeight: '900' },
+  trucoBtns: { flexDirection: 'row', gap: 12 },
+  btn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flex: 1 },
   btnDanger: { backgroundColor: '#ef4444' },
   btnSuccess: { backgroundColor: '#10b981' },
   btnWarning: { backgroundColor: '#f59e0b' },
-  btnText: {
-    color: '#fff',
-    fontWeight: '900',
-    fontSize: 12,
-  },
+  btnText: { color: '#fff', fontWeight: '900', fontSize: 12 },
 });
