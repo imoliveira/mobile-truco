@@ -10,16 +10,19 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSocket, BACKEND_URL } from '../context/SocketContext';
 import RulesModal from '../components/RulesModal';
 import { cpfMask, celularMask, validateCPF, validateEmail, randomCaptcha } from '../utils/validation';
 
-WebBrowser.maybeCompleteAuthSession();
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+  scopes: ['profile', 'email'],
+});
 
 export default function AuthScreen() {
   const { login } = useSocket();
+  console.log('Google Client ID carregado:', process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID);
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -43,52 +46,78 @@ export default function AuthScreen() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // TODO (config do usuário): criar um Client ID OAuth no Google Cloud
-  // Console (tipo "Android"/"iOS"/"Web" conforme a plataforma) e colocar
-  // em EXPO_PUBLIC_GOOGLE_CLIENT_ID no .env. Sem isso o botão fica inativo.
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-  });
-
   const handleSocialLogin = async () => {
     setError('');
+    console.log('--- DEBUG GOOGLE AUTH ---');
+    console.log('Iniciando login com GoogleSignin Nativo...');
+    
     if (!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID) {
       setError('Login com Google ainda não configurado neste app (falta o Client ID).');
       return;
     }
+    
     setLoading(true);
     try {
-      const result = await promptAsync();
-      if (result?.type !== 'success') {
-        setLoading(false);
-        return;
-      }
-      const { authentication } = result;
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
+      
+      // Compatibilidade com v16+ (.data) e versões antigas
+      const payload = userInfo.data ? userInfo.data : userInfo;
+      const { idToken, user } = payload;
 
-      const profileRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${authentication.accessToken}` },
-      });
-      const profile = await profileRes.json();
+      if (!idToken) {
+        throw new Error('Sem idToken retornado do Google.');
+      }
 
       const res = await fetch(`${BACKEND_URL}/api/auth/social`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          idToken: authentication.idToken,
-          uid: profile.id,
-          email: profile.email,
-          displayName: profile.name,
-          photoURL: profile.picture,
+          idToken: idToken,
+          uid: user.id,
+          email: user.email,
+          displayName: user.name,
+          photoURL: user.photo,
+        }),
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await login(data.username);
+      } else {
+        setError(data.message || 'Erro na autenticação social no servidor.');
+      }
+    } catch (err) {
+      console.log('Erro no Google Signin:', err);
+      setError('Falha ao autenticar com o Google. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async (guestNumber) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: 'dummy-token',
+          uid: `guest-uid-${guestNumber}`,
+          email: `convidado${guestNumber}@truco.com`,
+          displayName: `Convidado ${guestNumber}`,
+          photoURL: `https://api.dicebear.com/9.x/avataaars/svg?seed=Guest${guestNumber}`,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
         await login(data.username);
       } else {
-        setError(data.message || 'Erro na autenticação social.');
+        setError(data.message || 'Erro no login de convidado.');
       }
     } catch (err) {
-      setError('Falha ao autenticar com o Google.');
+      setError('Falha de conexão com o servidor.');
     } finally {
       setLoading(false);
     }
@@ -232,10 +261,29 @@ export default function AuthScreen() {
         <TouchableOpacity
           style={styles.googleBtn}
           onPress={handleSocialLogin}
-          disabled={loading || !request}
+          disabled={loading}
         >
           <Text style={styles.googleBtnText}>Entrar com Google</Text>
         </TouchableOpacity>
+
+        {__DEV__ && (
+          <View style={styles.devContainer}>
+            <TouchableOpacity 
+              style={[styles.googleBtn, styles.guestBtn]} 
+              onPress={() => handleGuestLogin(1)}
+              disabled={loading}
+            >
+              <Text style={styles.googleBtnText}>Convidado 1 (Dev)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.googleBtn, styles.guestBtn]} 
+              onPress={() => handleGuestLogin(2)}
+              disabled={loading}
+            >
+              <Text style={styles.googleBtnText}>Convidado 2 (Dev)</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <TouchableOpacity onPress={toggleMode} style={styles.toggle}>
           <Text style={styles.toggleText}>
@@ -323,6 +371,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   googleBtnText: { color: '#fff', fontWeight: '700' },
+  devContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  guestBtn: { flex: 1, backgroundColor: '#10b981', marginHorizontal: 4, marginTop: 0 },
   toggle: { marginTop: 22, alignItems: 'center' },
   toggleText: { color: '#94a3b8', fontSize: 13 },
   toggleLink: { color: '#818cf8', fontWeight: '700' },

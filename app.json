@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "Truco-Play",
-    "slug": "mobile-truco",
+    "slug": "trucoplay",
+    "scheme": "trucoplay",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -11,13 +12,25 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.imoliveira.mobiletruco"
+      "bundleIdentifier": "com.imoliveira.mobiletruco",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.imoliveira.mobiletruco",
       "adaptiveIcon": {
         "backgroundColor": "#0f172a"
       }
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ae9298bb-9813-4786-a526-a7852f4e256c"
+      }
+    },
+    "owner": "ivanzitos-team",
+    "plugins": [
+      "@react-native-google-signin/google-signin"
+    ]
   }
 }

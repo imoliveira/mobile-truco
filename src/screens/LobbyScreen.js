@@ -91,7 +91,7 @@ export default function LobbyScreen({ navigation }) {
 
   const userLevel = Math.floor((userStats.xp || 0) / 100) + 1;
   const xpProgress = (userStats.xp || 0) % 100;
-  const avatarUri = userStats.avatar || `https://api.dicebear.com/9.x/avataaars/svg?seed=${username}`;
+  const avatarUri = userStats.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${username}`;
 
   return (
     <View style={styles.container}>
