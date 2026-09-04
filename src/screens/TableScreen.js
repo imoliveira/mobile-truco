@@ -213,6 +213,9 @@ export default function TableScreen({ route, navigation }) {
   }
 
   const otherPlayer = table.players.find(p => p.username !== username);
+  const myTeam = (table.players.findIndex(p => p.username === username) % 2 === 0) ? 'team1' : 'team2';
+  const canTruco = table.lastTrucoTeam !== myTeam && table.currentValue < 12;
+
   const translateY = dealAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 0] });
   const rotate = dealAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '0deg'] });
 
@@ -222,10 +225,19 @@ export default function TableScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backBtn}>← Sair</Text>
         </TouchableOpacity>
-        <View style={styles.scoreBoard}>
-          <Text style={styles.scoreText}>NÓS: {table.score?.team1 || 0}</Text>
-          <Text style={styles.scoreDivider}>|</Text>
-          <Text style={styles.scoreText}>ELES: {table.score?.team2 || 0}</Text>
+        <View style={{ alignItems: 'center' }}>
+          {table.maxMatches > 1 && (
+            <View style={[styles.scoreBoard, { backgroundColor: '#334155', marginBottom: 4 }]}>
+              <Text style={[styles.scoreText, { color: '#cbd5e1' }]}>
+                JOGOS: {table.matchScore?.[myTeam] || 0} x {table.matchScore?.[myTeam === 'team1' ? 'team2' : 'team1'] || 0}
+              </Text>
+            </View>
+          )}
+          <View style={styles.scoreBoard}>
+            <Text style={styles.scoreText}>NÓS: {table.score?.[myTeam] || 0}</Text>
+            <Text style={styles.scoreDivider}>|</Text>
+            <Text style={styles.scoreText}>ELES: {table.score?.[myTeam === 'team1' ? 'team2' : 'team1'] || 0}</Text>
+          </View>
         </View>
         <Text style={styles.tableValue}>VALE: {table.currentValue || 1}</Text>
       </View>
@@ -285,8 +297,8 @@ export default function TableScreen({ route, navigation }) {
         {myTurn && !trucoRequest && (
           <GameControls
             trucoLevel={table.currentValue === 1 ? 1 : table.currentValue}
-            canTruco={true}
-            onTruco={() => handleRequestTruco()}
+            canTruco={canTruco}
+            onTruco={() => handleRequestTruco(table.currentValue === 1 ? 3 : table.currentValue === 3 ? 6 : table.currentValue === 6 ? 9 : 12)}
             onFold={handleFold}
             onHide={() => setIsHidingCard(!isHidingCard)}
             isHidingCard={isHidingCard}
@@ -359,7 +371,7 @@ export default function TableScreen({ route, navigation }) {
       )}
 
       {/* Overlay de Truco */}
-      {trucoRequest && (
+      {trucoRequest && table.status !== 'match_finished' && (
         <View style={styles.trucoOverlay}>
           <View style={styles.trucoModal}>
             <Text style={styles.trucoModalTitle}>TRUCO!</Text>
@@ -374,11 +386,24 @@ export default function TableScreen({ route, navigation }) {
               <TouchableOpacity style={[styles.btn, styles.btnSuccess]} onPress={() => handleRespondTruco(true)}>
                 <Text style={styles.btnText}>ACEITAR</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, styles.btnWarning]} onPress={() => {
-                  handleRequestTruco(trucoRequest.value === 3 ? 6 : trucoRequest.value === 6 ? 9 : 12);
-                  setTrucoRequest(null);
-                }}>
-                <Text style={styles.btnText}>AUMENTAR</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Overlay de Fim de Partida */}
+      {table.status === 'match_finished' && (
+        <View style={styles.trucoOverlay}>
+          <View style={[styles.trucoModal, { borderColor: table.matchWinner === myTeam ? '#10b981' : '#ef4444' }]}>
+            <Text style={[styles.trucoModalTitle, { color: table.matchWinner === myTeam ? '#10b981' : '#ef4444' }]}>
+              {table.matchWinner === myTeam ? 'VITÓRIA!' : 'DERROTA!'}
+            </Text>
+            <Text style={styles.trucoModalText}>
+              A partida terminou.
+            </Text>
+            <View style={styles.trucoBtns}>
+              <TouchableOpacity style={[styles.btn, styles.btnSuccess]} onPress={() => navigation.goBack()}>
+                <Text style={styles.btnText}>VOLTAR AO LOBBY</Text>
               </TouchableOpacity>
             </View>
           </View>
