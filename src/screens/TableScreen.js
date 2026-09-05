@@ -5,25 +5,29 @@ import Card from '../components/Card';
 import PlayerSlot from '../components/PlayerSlot';
 import GameControls from '../components/GameControls';
 
-const QUICK_EMOTES = ['🦆', '🙈', '🤫', '🤡', '🤬'];
+const QUICK_EMOTES = ['🦆', '🦆🦆🦆', '🤡', '🤣', '🤬'];
 
 const FloatingEmote = ({ emote, onComplete }) => {
   const anim = useRef(new Animated.Value(0)).current;
+  const randomX = useRef((Math.random() - 0.5) * 150).current; // Deriva aleatória para os lados
+  const randomRotate = useRef((Math.random() > 0.5 ? 1 : -1) * 720).current; // Gira 2x para um lado aleatório
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.spring(anim, { toValue: 1, tension: 40, friction: 4, useNativeDriver: true }),
-      Animated.delay(2000),
-      Animated.timing(anim, { toValue: 0, duration: 500, useNativeDriver: true })
-    ]).start(() => onComplete(emote.id));
+    Animated.timing(anim, { 
+      toValue: 1, 
+      duration: 2500, 
+      useNativeDriver: true 
+    }).start(() => onComplete(emote.id));
   }, []);
 
   return (
     <Animated.Text style={[styles.floatingEmote, {
-      opacity: anim,
+      opacity: anim.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 1, 0] }),
       transform: [
-        { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.1, 1.2] }) },
-        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [50, -150] }) }
+        { scale: anim.interpolate({ inputRange: [0, 0.1, 1], outputRange: [0.1, 1.5, 2] }) },
+        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [100, -350] }) },
+        { translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [0, randomX] }) },
+        { rotate: anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${randomRotate}deg`] }) }
       ]
     }]}>
       {emote.emoji}
