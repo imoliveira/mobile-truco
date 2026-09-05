@@ -4,9 +4,9 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 export default function GameControls({ onTruco, onFold, onHide, canTruco, trucoLevel, isHidingCard }) {
   const trucoLabels = {
     1: 'TRUCO!',
-    3: 'RETRUCO!',
-    6: 'VALE 9!',
-    9: 'VALE 12!',
+    3: 'PEDIR 6!',
+    6: 'PEDIR 9!',
+    9: 'PEDIR 12!',
   };
 
   return (
@@ -15,13 +15,14 @@ export default function GameControls({ onTruco, onFold, onHide, canTruco, trucoL
         <Text style={styles.btnText}>CORRER</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.btn, styles.trucoBtn, !canTruco && styles.disabled]}
-        onPress={onTruco}
-        disabled={!canTruco}
-      >
-        <Text style={styles.trucoText}>{trucoLabels[trucoLevel] || 'TRUCO'}</Text>
-      </TouchableOpacity>
+      {canTruco && (
+        <TouchableOpacity
+          style={[styles.btn, styles.trucoBtn]}
+          onPress={onTruco}
+        >
+          <Text style={styles.trucoText}>{trucoLabels[trucoLevel] || 'TRUCO'}</Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={[styles.btn, styles.hideBtn, isHidingCard && styles.hideBtnActive]} onPress={onHide}>
         <Text style={styles.btnText}>{isHidingCard ? 'ESCONDENDO...' : 'ESCONDER'}</Text>

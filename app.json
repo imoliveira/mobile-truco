@@ -5,10 +5,14 @@
     "scheme": "trucoplay",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0f172a",
     "splash": {
       "backgroundColor": "#0f172a"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "ios": {
       "supportsTablet": false,
@@ -20,6 +24,7 @@
     "android": {
       "package": "com.imoliveira.mobiletruco",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0f172a"
       }
     },
