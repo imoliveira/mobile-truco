@@ -9,13 +9,13 @@ const QUICK_EMOTES = ['🦆', '🦆🦆🦆', '🤡', '🤣', '🤬'];
 
 const FloatingEmote = ({ emote, onComplete }) => {
   const anim = useRef(new Animated.Value(0)).current;
-  const randomX = useRef((Math.random() - 0.5) * 150).current; // Deriva aleatória para os lados
-  const randomRotate = useRef((Math.random() > 0.5 ? 1 : -1) * 720).current; // Gira 2x para um lado aleatório
+  const randomX = useRef((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 60 + 40)).current; // Deriva de 40 a 100 pixels
+  const randomRotate = useRef((Math.random() > 0.5 ? 1 : -1) * 360).current; // Gira 1 volta completa
 
   useEffect(() => {
     Animated.timing(anim, { 
       toValue: 1, 
-      duration: 2500, 
+      duration: 3500, // Mais lento e suave como um balão
       useNativeDriver: true 
     }).start(() => onComplete(emote.id));
   }, []);
@@ -24,9 +24,12 @@ const FloatingEmote = ({ emote, onComplete }) => {
     <Animated.Text style={[styles.floatingEmote, {
       opacity: anim.interpolate({ inputRange: [0, 0.1, 0.8, 1], outputRange: [0, 1, 1, 0] }),
       transform: [
-        { scale: anim.interpolate({ inputRange: [0, 0.1, 1], outputRange: [0.1, 1.5, 2] }) },
-        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [100, -350] }) },
-        { translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [0, randomX] }) },
+        { scale: anim.interpolate({ inputRange: [0, 0.1, 1], outputRange: [0.1, 1.5, 2.5] }) }, // Fica maior
+        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [100, -450] }) }, // Sobe mais alto
+        { translateX: anim.interpolate({ 
+            inputRange: [0, 0.33, 0.66, 1], 
+            outputRange: [0, randomX, -randomX * 0.8, randomX * 0.4] 
+        }) }, // Movimento de ziguezague (balão solto no vento)
         { rotate: anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${randomRotate}deg`] }) }
       ]
     }]}>
