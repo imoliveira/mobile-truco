@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   // Chat Overlay
   chatOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 90, justifyContent: 'flex-end' },
   chatCloseOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
-  chatContainer: { backgroundColor: '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, maxHeight: '60%' },
+  chatContainer: { backgroundColor: '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, height: '60%' },
   chatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   chatTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   chatCloseText: { color: '#ef4444', fontSize: 20, fontWeight: 'bold' },
