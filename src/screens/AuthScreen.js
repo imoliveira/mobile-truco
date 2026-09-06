@@ -13,6 +13,7 @@ import {
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSocket, BACKEND_URL } from '../context/SocketContext';
 import RulesModal from '../components/RulesModal';
+import LegalModal from '../components/LegalModal';
 import { cpfMask, celularMask, validateCPF, validateEmail, randomCaptcha } from '../utils/validation';
 
 GoogleSignin.configure({
@@ -28,8 +29,15 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showRules, setShowRules] = useState(false);
+  const [legalVisible, setLegalVisible] = useState(false);
+  const [legalType, setLegalType] = useState('terms');
   const [captcha, setCaptcha] = useState(randomCaptcha());
   const [captchaInput, setCaptchaInput] = useState('');
+
+  const openLegal = (type) => {
+    setLegalType(type);
+    setLegalVisible(true);
+  };
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -354,9 +362,20 @@ export default function AuthScreen() {
             <Text style={styles.toggleLink}>{isLogin ? 'Cadastre-se' : 'Fazer Login'}</Text>
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.legalFooter}>
+          <Text style={styles.legalText}>
+            Ao continuar, você concorda com nossos{' '}
+            <Text style={styles.legalLink} onPress={() => openLegal('terms')}>Termos de Uso</Text> e{' '}
+            <Text style={styles.legalLink} onPress={() => openLegal('privacy')}>Política de Privacidade</Text>.
+            Veja também nossa política de{' '}
+            <Text style={styles.legalLink} onPress={() => openLegal('safeplay')}>Jogo Seguro e Justo</Text>.
+          </Text>
+        </View>
       </ScrollView>
 
       <RulesModal visible={showRules} onClose={() => setShowRules(false)} />
+      <LegalModal visible={legalVisible} type={legalType} onClose={() => setLegalVisible(false)} />
     </KeyboardAvoidingView>
   );
 }
@@ -439,4 +458,7 @@ const styles = StyleSheet.create({
   toggle: { marginTop: 22, alignItems: 'center' },
   toggleText: { color: '#94a3b8', fontSize: 13 },
   toggleLink: { color: '#818cf8', fontWeight: '700' },
+  legalFooter: { marginTop: 32, paddingHorizontal: 10 },
+  legalText: { color: '#64748b', fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  legalLink: { color: '#94a3b8', textDecorationLine: 'underline' },
 });
