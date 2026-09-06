@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,65 @@ export default function AuthScreen() {
   const [captcha, setCaptcha] = useState(randomCaptcha());
   const [captchaInput, setCaptchaInput] = useState('');
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const initGSI = () => {
+        if (!window.google) {
+          setTimeout(initGSI, 100);
+          return;
+        }
+        window.google.accounts.id.initialize({
+          client_id: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            try {
+              setLoading(true);
+              const idToken = response.credential;
+              const base64Url = idToken.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              const user = JSON.parse(jsonPayload);
+              
+              const res = await fetch(`${BACKEND_URL}/api/auth/social`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  idToken: idToken,
+                  uid: user.sub,
+                  email: user.email,
+                  displayName: user.name,
+                  photoURL: user.picture,
+                }),
+              });
+              
+              const data = await res.json();
+              if (res.ok && data.success) {
+                await login(data.username);
+              } else {
+                setError(data.message || 'Erro na autenticação social.');
+              }
+            } catch (e) {
+              console.error('Web GSI erro:', e);
+              setError('Erro ao processar login do Google.');
+            } finally {
+              setLoading(false);
+            }
+          }
+        });
+        
+        const btnContainer = document.getElementById('google-btn-container');
+        if (btnContainer) {
+          window.google.accounts.id.renderButton(
+            btnContainer,
+            { theme: 'filled_blue', size: 'large', text: 'signin_with', shape: 'rectangular', width: 250 }
+          );
+        }
+      };
+      initGSI();
+    }
+  }, []);
+
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -58,9 +117,7 @@ export default function AuthScreen() {
     
     setLoading(true);
     try {
-      if (Platform.OS !== 'web') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      }
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const userInfo = await GoogleSignin.signIn();
       
       // Compatibilidade com v16+ (.data) e versões antigas
@@ -260,13 +317,17 @@ export default function AuthScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.googleBtn}
-          onPress={handleSocialLogin}
-          disabled={loading}
-        >
-          <Text style={styles.googleBtnText}>Entrar com Google</Text>
-        </TouchableOpacity>
+        {Platform.OS === 'web' ? (
+          <View nativeID="google-btn-container" style={{ marginTop: 12, alignItems: 'center', height: 44, width: '100%' }} />
+        ) : (
+          <TouchableOpacity
+            style={styles.googleBtn}
+            onPress={handleSocialLogin}
+            disabled={loading}
+          >
+            <Text style={styles.googleBtnText}>Entrar com Google</Text>
+          </TouchableOpacity>
+        )}
 
         {__DEV__ && (
           <View style={styles.devContainer}>
