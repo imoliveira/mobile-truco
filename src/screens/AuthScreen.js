@@ -58,7 +58,9 @@ export default function AuthScreen() {
     
     setLoading(true);
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (Platform.OS !== 'web') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
       const userInfo = await GoogleSignin.signIn();
       
       // Compatibilidade com v16+ (.data) e versões antigas
@@ -89,7 +91,7 @@ export default function AuthScreen() {
       }
     } catch (err) {
       console.log('Erro no Google Signin:', err);
-      setError('Falha ao autenticar com o Google. Tente novamente.');
+      setError(`Falha ao autenticar: ${err.message || 'Tente novamente.'}`);
     } finally {
       setLoading(false);
     }
