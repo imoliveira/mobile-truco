@@ -4,8 +4,9 @@ import { Modal, View, Text, Image, TouchableOpacity, StyleSheet } from 'react-na
 export default function AvatarModal({ visible, options, onSelect, onClose }) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={styles.content}>
+      <View style={styles.overlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+        <View style={styles.content}>
           <Text style={styles.title}>Escolha seu novo Avatar</Text>
           <View style={styles.grid}>
             {options.map((url) => (
@@ -17,8 +18,8 @@ export default function AvatarModal({ visible, options, onSelect, onClose }) {
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>Cancelar</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 }

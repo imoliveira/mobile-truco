@@ -16,7 +16,7 @@ export default function PlayerSlot({ player, isTurn, position }) {
     <View style={[styles.container, styles[position]]}>
       <View style={[styles.avatarContainer, isTurn && styles.activeAvatar]}>
         <Image
-          source={{ uri: player.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${player.username}` }}
+          source={player.avatar ? { uri: player.avatar } : require('../../assets/robologo.jpg')}
           style={styles.avatar}
         />
         {isTurn && (

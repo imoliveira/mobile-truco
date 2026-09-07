@@ -11,7 +11,6 @@ import {
   Platform,
 } from 'react-native';
 import { useSocket } from '../context/SocketContext';
-import AvatarModal from '../components/AvatarModal';
 
 const MODES = ['1x1', '2x2', '3x3'];
 const MAX_MATCHES_OPTIONS = [1, 3, 5];
@@ -32,9 +31,6 @@ export default function LobbyScreen({ navigation }) {
 
   const [userStats, setUserStats] = useState({ vitorias: 0, derrotas: 0, partidas: 0, xp: 0, avatar: '' });
   const [globalRanking, setGlobalRanking] = useState([]);
-
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [avatarOptions, setAvatarOptions] = useState([]);
 
   useEffect(() => {
     if (!socket) return;
@@ -75,31 +71,16 @@ export default function LobbyScreen({ navigation }) {
     setCurrentMessage('');
   };
 
-  const openAvatarModal = () => {
-    const options = Array.from({ length: 12 }).map(() => {
-      const seed = Math.random().toString(36).substring(7);
-      return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}`;
-    });
-    setAvatarOptions(options);
-    setShowAvatarModal(true);
-  };
-
-  const selectAvatar = (url) => {
-    socket.emit('change_avatar', url);
-    setShowAvatarModal(false);
-  };
-
   const userLevel = Math.floor((userStats.xp || 0) / 100) + 1;
   const xpProgress = (userStats.xp || 0) % 100;
-  const avatarUri = userStats.avatar || `https://api.dicebear.com/9.x/avataaars/png?seed=${username}`;
+  
+  const avatarSource = userStats.avatar ? { uri: userStats.avatar } : require('../../assets/robologo.jpg');
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={openAvatarModal}>
-            <Image source={{ uri: avatarUri }} style={styles.avatar} />
-          </TouchableOpacity>
+          <Image source={avatarSource} style={styles.avatar} />
           <View style={styles.headerInfo}>
             <Text style={styles.welcome}>Olá, {username}</Text>
             <View style={styles.levelRow}>
@@ -227,24 +208,20 @@ export default function LobbyScreen({ navigation }) {
             keyExtractor={(item) => item.username}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={<Text style={styles.emptyText}>Ainda não há rankings.</Text>}
-            renderItem={({ item }) => (
-              <View style={styles.rankRow}>
-                <Text style={styles.rankPosition}>#{item.rank}</Text>
-                <Image source={{ uri: item.avatar }} style={styles.rankAvatar} />
-                <Text style={styles.rankName}>{item.username}</Text>
-                <Text style={styles.rankXp}>{item.xp} XP</Text>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const rankAvatarSource = item.avatar ? { uri: item.avatar } : require('../../assets/robologo.jpg');
+              return (
+                <View style={styles.rankRow}>
+                  <Text style={styles.rankPosition}>#{item.rank}</Text>
+                  <Image source={rankAvatarSource} style={styles.rankAvatar} />
+                  <Text style={styles.rankName}>{item.username}</Text>
+                  <Text style={styles.rankXp}>{item.xp} XP</Text>
+                </View>
+              );
+            }}
           />
         </View>
       )}
-
-      <AvatarModal
-        visible={showAvatarModal}
-        options={avatarOptions}
-        onSelect={selectAvatar}
-        onClose={() => setShowAvatarModal(false)}
-      />
     </View>
   );
 }

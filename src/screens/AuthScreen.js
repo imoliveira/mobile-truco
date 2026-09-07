@@ -175,7 +175,7 @@ export default function AuthScreen() {
           uid: `guest-uid-${guestNumber}`,
           email: `convidado${guestNumber}@truco.com`,
           displayName: `Convidado ${guestNumber}`,
-          photoURL: `https://api.dicebear.com/9.x/avataaars/svg?seed=Guest${guestNumber}`,
+          photoURL: `https://api.dicebear.com/9.x/avataaars/png?seed=Guest${guestNumber}`,
         }),
       });
       const data = await res.json();
