@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSocket, BACKEND_URL } from '../context/SocketContext';
@@ -261,7 +262,10 @@ export default function AuthScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Truco-Play</Text>
+        <View style={styles.titleContainer}>
+          <Image source={require('../../assets/logo.jpg')} style={styles.logo} />
+          <Text style={styles.title}>Truco-Play</Text>
+        </View>
         <Text style={styles.subtitle}>
           {isLogin ? 'Bem-vindo de volta! Entre na sua conta.' : 'Crie sua conta para jogar.'}
         </Text>
@@ -397,12 +401,23 @@ function Field({ label, ...inputProps }) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#0f172a' },
   container: { padding: 24, paddingBottom: 48 },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    marginRight: 10,
+  },
   title: {
     color: '#fff',
     fontSize: 30,
     fontWeight: '800',
     textAlign: 'center',
-    marginTop: 24,
   },
   subtitle: { color: '#94a3b8', fontSize: 14, textAlign: 'center', marginTop: 6 },
   rulesBtn: {
