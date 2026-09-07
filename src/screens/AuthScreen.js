@@ -369,7 +369,7 @@ export default function AuthScreen() {
             <Text style={styles.legalLink} onPress={() => openLegal('terms')}>Termos de Uso</Text> e{' '}
             <Text style={styles.legalLink} onPress={() => openLegal('privacy')}>Política de Privacidade</Text>.
             Veja também nossa política de{' '}
-            <Text style={styles.legalLink} onPress={() => openLegal('safeplay')}>Jogo Seguro e Justo</Text>.
+            <Text style={styles.legalLink} onPress={() => openLegal('safeplay')}>Jogo Leve Curtição Sem Stress</Text>.
           </Text>
         </View>
       </ScrollView>

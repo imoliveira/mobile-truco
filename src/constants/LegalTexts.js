@@ -47,7 +47,7 @@ export const PRIVACY_POLICY = {
 };
 
 export const SAFE_PLAY = {
-  title: "Jogo Seguro e Justo",
+  title: "Jogo Leve Curtição Sem Stress",
   content: [
     {
       heading: "Nossa Filosofia",
