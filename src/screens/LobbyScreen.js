@@ -145,7 +145,8 @@ export default function LobbyScreen({ navigation }) {
             ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma mesa ativa. Crie a primeira!</Text>}
             renderItem={({ item }) => {
               const maxPlayers = MAX_PLAYERS[item.mode] ?? 4;
-              const full = item.players.length >= maxPlayers;
+              const isAlreadyInTable = item.players.some(p => p.username === username);
+              const full = item.players.length >= maxPlayers && !isAlreadyInTable;
               return (
                 <View style={styles.tableCard}>
                   <View style={{ flex: 1 }}>
