@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, Animated, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Audio } from 'expo-av';
 import { useSocket } from '../context/SocketContext';
 import Card from '../components/Card';
 import PlayerSlot from '../components/PlayerSlot';
@@ -49,6 +50,46 @@ export default function TableScreen({ route, navigation }) {
   const [timeLeft, setTimeLeft] = useState(15);
   const [isHidingCard, setIsHidingCard] = useState(false);
   const [trucoRequest, setTrucoRequest] = useState(null);
+  const [sound, setSound] = useState();
+  const [trollCooldown, setTrollCooldown] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (trollCooldown > 0) {
+      interval = setInterval(() => {
+        setTrollCooldown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [trollCooldown]);
+
+  const handleTrollSound = (soundId) => {
+    if (trollCooldown === 0) {
+      socket.emit('play_troll_sound', { tableId, soundId });
+      setTrollCooldown(10);
+    }
+  };
+
+  async function playSound(soundId) {
+    let soundFile;
+    if (soundId === 'goofy') soundFile = require('../../sons/goofy-laughh.mp3');
+    else if (soundId === 'ohno') soundFile = require('../../sons/oh-no-meme.mp3');
+    else if (soundId === 'pirates') soundFile = require('../../sons/pirates.mp3');
+
+    if (!soundFile) return;
+
+    try {
+      const { sound: newSound } = await Audio.Sound.createAsync(soundFile);
+      setSound(newSound);
+      await newSound.playAsync();
+    } catch (error) {
+      console.log('Erro ao tocar som', error);
+    }
+  }
+
+  useEffect(() => {
+    return sound ? () => { sound.unloadAsync(); } : undefined;
+  }, [sound]);
 
   // Chat & Emote states
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -159,6 +200,13 @@ export default function TableScreen({ route, navigation }) {
       setActiveEmotes(prev => [...prev, newEmote]);
     });
 
+    socket.on('receive_troll_sound', ({ user, soundId }) => {
+      playSound(soundId);
+      const emoji = soundId === 'goofy' ? '🤣' : soundId === 'ohno' ? '😱' : '🏴‍☠️';
+      const newEmote = { id: Date.now().toString() + Math.random(), emoji, user };
+      setActiveEmotes(prev => [...prev, newEmote]);
+    });
+
     return () => {
       socket.emit('leave_table', tableId);
       socket.off('table_update');
@@ -167,6 +215,7 @@ export default function TableScreen({ route, navigation }) {
       socket.off('truco_requested');
       socket.off('receive_message');
       socket.off('receive_emote');
+      socket.off('receive_troll_sound');
     };
   }, [socket, tableId, username, dealAnim]);
 
@@ -398,7 +447,25 @@ export default function TableScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* Overlay de Fim de Partida */}
+      {/* Botões Flutuantes de Áudio (Troll) */}
+      {table.status !== 'match_finished' && (
+        <View style={styles.floatingTrollContainer}>
+          <TouchableOpacity style={[styles.floatingTrollBtn, trollCooldown > 0 && styles.trollBtnDisabled]} onPress={() => handleTrollSound('goofy')} disabled={trollCooldown > 0}>
+            <Text style={styles.floatingTrollText}>🤣</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.floatingTrollBtn, trollCooldown > 0 && styles.trollBtnDisabled]} onPress={() => handleTrollSound('ohno')} disabled={trollCooldown > 0}>
+            <Text style={styles.floatingTrollText}>😱</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.floatingTrollBtn, trollCooldown > 0 && styles.trollBtnDisabled]} onPress={() => handleTrollSound('pirates')} disabled={trollCooldown > 0}>
+            <Text style={styles.floatingTrollText}>🏴‍☠️</Text>
+          </TouchableOpacity>
+          {trollCooldown > 0 && (
+            <Text style={styles.trollCooldownText}>{trollCooldown}s</Text>
+          )}
+        </View>
+      )}
+
+      {/* Overlay de Fim do Match */}
       {table.status === 'match_finished' && (
         <View style={styles.trucoOverlay}>
           <View style={[styles.trucoModal, { borderColor: table.matchWinner === myTeam ? '#10b981' : '#ef4444' }]}>
@@ -441,9 +508,9 @@ const styles = StyleSheet.create({
   stackedCard: { position: 'absolute' },
   viraCardWrapper: { zIndex: 1, transform: [{ rotate: '-10deg' }] },
   myHand: { position: 'absolute', bottom: 20, flexDirection: 'row', gap: 10 },
-  bottomPlayerWrapper: { alignItems: 'center', position: 'absolute', bottom: 120 },
-  timerContainer: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
-  timerText: { color: '#34d399', fontWeight: '900', fontSize: 14 },
+  bottomPlayerWrapper: { alignItems: 'center', position: 'absolute', bottom: 190, width: '100%' },
+  timerContainer: { position: 'absolute', top: -25, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, zIndex: 10 },
+  timerText: { color: '#34d399', fontWeight: 'bold', fontSize: 10 },
   timerTextDanger: { color: '#ef4444' },
   
   // Floating Emote
@@ -489,4 +556,11 @@ const styles = StyleSheet.create({
   btnSuccess: { backgroundColor: '#10b981' },
   btnWarning: { backgroundColor: '#f59e0b' },
   btnText: { color: '#fff', fontWeight: '900', fontSize: 12 },
+
+  // Troll Floating Buttons
+  floatingTrollContainer: { position: 'absolute', top: 80, left: 20, gap: 12, zIndex: 90, alignItems: 'center' },
+  floatingTrollBtn: { backgroundColor: '#0f172a', width: 45, height: 45, borderRadius: 25, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#38bdf8', elevation: 5 },
+  trollBtnDisabled: { borderColor: '#64748b', opacity: 0.5 },
+  floatingTrollText: { fontSize: 20 },
+  trollCooldownText: { color: '#ef4444', fontWeight: 'bold', fontSize: 12, marginTop: 4 },
 });
