@@ -449,7 +449,7 @@ export default function TableScreen({ route, navigation }) {
 
       {/* Botões Flutuantes de Áudio (Troll) */}
       {table.status !== 'match_finished' && (
-        <View style={styles.floatingTrollContainer}>
+        <View style={styles.floatingTrollContainer} pointerEvents="box-none">
           <TouchableOpacity style={[styles.floatingTrollBtn, trollCooldown > 0 && styles.trollBtnDisabled]} onPress={() => handleTrollSound('goofy')} disabled={trollCooldown > 0}>
             <Text style={styles.floatingTrollText}>🤣</Text>
           </TouchableOpacity>
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   chatButtonText: { fontSize: 24 },
   
   // Chat Overlay
-  chatOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 90, justifyContent: 'flex-end' },
+  chatOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 200, elevation: 10, justifyContent: 'flex-end' },
   chatCloseOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
   chatContainer: { backgroundColor: '#1e293b', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, height: '60%' },
   chatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
