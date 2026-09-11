@@ -237,6 +237,10 @@ export default function TableScreen({ route, navigation }) {
     setTrucoRequest(null);
   };
 
+  const handleRespondMaoDe11 = (accepted) => {
+    socket.emit('respond_mao_de_11', { tableId, accepted });
+  };
+
   const handleFold = () => {
     Alert.alert('Correr?', 'Deseja realmente abandonar esta mão?', [
       { text: 'Não', style: 'cancel' },
@@ -270,7 +274,7 @@ export default function TableScreen({ route, navigation }) {
 
   const otherPlayer = table.players.find(p => p.username !== username);
   const myTeam = (table.players.findIndex(p => p.username === username) % 2 === 0) ? 'team1' : 'team2';
-  const canTruco = table.lastTrucoTeam !== myTeam && table.currentValue < 12;
+  const canTruco = table.lastTrucoTeam !== myTeam && table.currentValue < 12 && table.score?.team1 !== 11 && table.score?.team2 !== 11;
 
   const translateY = dealAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 0] });
   const rotate = dealAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '0deg'] });
@@ -443,6 +447,33 @@ export default function TableScreen({ route, navigation }) {
                 <Text style={styles.btnText}>ACEITAR</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      )}
+
+      {/* Overlay de Mao de 11 */}
+      {table.status === 'waiting_mao_de_11' && table.maoDe11Decider === username && (
+        <View style={styles.trucoOverlay}>
+          <View style={styles.trucoModal}>
+            <Text style={styles.trucoModalTitle}>MÃO DE 11</Text>
+            <Text style={styles.trucoModalText}>Sua equipe tem 11 pontos. Deseja jogar esta mão valendo 3 pontos ou correr (dando 1 ponto para o adversário)?</Text>
+            <View style={styles.trucoBtns}>
+              <TouchableOpacity style={[styles.btn, styles.btnDanger]} onPress={() => handleRespondMaoDe11(false)}>
+                <Text style={styles.btnText}>CORRER (Dá 1 pt)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btn, styles.btnSuccess]} onPress={() => handleRespondMaoDe11(true)}>
+                <Text style={styles.btnText}>JOGAR (Vale 3 pts)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+      
+      {table.status === 'waiting_mao_de_11' && table.maoDe11Decider !== username && (
+        <View style={styles.trucoOverlay}>
+          <View style={styles.trucoModal}>
+            <Text style={styles.trucoModalTitle}>MÃO DE 11</Text>
+            <Text style={styles.trucoModalText}>Aguardando {table.maoDe11Decider} decidir a Mão de 11...</Text>
           </View>
         </View>
       )}
