@@ -27,6 +27,8 @@ export default function LobbyScreen({ navigation }) {
   const [newTableMaxMatches, setNewTableMaxMatches] = useState(3);
   const [newTableAdsEnabled, setNewTableAdsEnabled] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
 
@@ -177,8 +179,19 @@ export default function LobbyScreen({ navigation }) {
             </View>
           )}
 
+          <View style={styles.searchContainer}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar mesa pelo nome..."
+              placeholderTextColor="#64748b"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
           <FlatList
-            data={tables}
+            data={tables.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma mesa ativa. Crie a primeira!</Text>}
@@ -355,6 +368,24 @@ const styles = StyleSheet.create({
   planDetail: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
   bestValueTag: { position: 'absolute', top: -10, backgroundColor: '#fbbf24', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   bestValueText: { color: '#000', fontSize: 9, fontWeight: '900' },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  searchIcon: { fontSize: 16, marginRight: 8 },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    paddingVertical: 10,
+    fontSize: 14,
+  },
   tableCard: {
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderWidth: 1,
