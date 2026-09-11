@@ -20,6 +20,10 @@ export const TERMS_OF_SERVICE = {
     {
       heading: "5. Suspensão e Encerramento",
       body: "Reservamo-nos o direito de suspender ou banir permanentemente contas que violem estes Termos, sem aviso prévio. A decisão de encerramento da conta é final e indiscutível."
+    },
+    {
+      heading: "6. Canal Oficial de Atendimento",
+      body: "Por motivos de segurança, nosso único canal oficial de contato e suporte é através do e-mail (ivan.oliveira.it@gmail.com). Nunca entraremos em contato proativamente solicitando suas senhas, dados de cartão ou informações sensíveis por redes sociais, aplicativos de mensagens ou telefone. Todas as dúvidas e resoluções devem ser tratadas exclusivamente por e-mail."
     }
   ]
 };
@@ -42,6 +46,10 @@ export const PRIVACY_POLICY = {
     {
       heading: "4. Exclusão de Conta e Dados",
       body: "Você tem o direito de solicitar a exclusão da sua conta e de todos os dados associados a ela. Uma vez solicitada, a remoção será feita de nossos bancos de dados principais, exceto em casos onde a retenção for necessária por obrigações legais ou resolução de disputas."
+    },
+    {
+      heading: "5. Comunicação e Segurança",
+      body: "Não entramos em contato direto com os usuários por meios não oficiais (telefone, WhatsApp, SMS, etc.). Qualquer necessidade de suporte, dúvida ou solicitação de privacidade deve ser encaminhada para nosso canal oficial e exclusivo de e-mail (ivan.oliveira.it@gmail.com). Desconfie de qualquer pessoa que afirme representar o Truco-Play fora desse canal."
     }
   ]
 };
