@@ -25,6 +25,7 @@ export default function LobbyScreen({ navigation }) {
   const [newTableName, setNewTableName] = useState('');
   const [newTableMode, setNewTableMode] = useState('2x2');
   const [newTableMaxMatches, setNewTableMaxMatches] = useState(3);
+  const [newTableAdsEnabled, setNewTableAdsEnabled] = useState(true);
 
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -61,6 +62,7 @@ export default function LobbyScreen({ navigation }) {
       name: newTableName,
       mode: newTableMode,
       maxMatches: newTableMaxMatches,
+      adsEnabled: newTableAdsEnabled,
     });
     setNewTableName('');
   };
@@ -133,6 +135,21 @@ export default function LobbyScreen({ navigation }) {
                 />
               ))}
             </View>
+            <TouchableOpacity 
+              style={[styles.premiumToggle, !userStats?.isPremium && styles.premiumToggleDisabled]} 
+              onPress={() => {
+                if (userStats?.isPremium) {
+                  setNewTableAdsEnabled(!newTableAdsEnabled);
+                } else {
+                  alert('Apenas usuários VIP (Assinantes) podem criar mesas sem propagandas.');
+                }
+              }}
+            >
+              <Text style={styles.premiumToggleText}>
+                {!userStats?.isPremium && '🔒 '}
+                {newTableAdsEnabled ? '✅ Com Propagandas' : '❌ Sem Propagandas'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.createBtn} onPress={handleCreateTable}>
               <Text style={styles.createBtnText}>Criar Mesa</Text>
             </TouchableOpacity>
@@ -302,6 +319,9 @@ const styles = StyleSheet.create({
   pillTextActive: { color: '#0f172a', fontWeight: '700' },
   createBtn: { backgroundColor: '#4ADE80', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
   createBtnText: { color: '#064E3B', fontWeight: '700' },
+  premiumToggle: { backgroundColor: 'rgba(0,0,0,0.3)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 6, alignItems: 'center', marginTop: 4 },
+  premiumToggleDisabled: { opacity: 0.5 },
+  premiumToggleText: { color: '#fbbf24', fontWeight: '600', fontSize: 13 },
   tableCard: {
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderWidth: 1,
