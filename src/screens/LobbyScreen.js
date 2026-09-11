@@ -155,6 +155,28 @@ export default function LobbyScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {!userStats?.isPremium && (
+            <View style={styles.premiumAdContainer}>
+              <Text style={styles.premiumAdTitle}>🌟 Torne-se VIP 🌟</Text>
+              <Text style={styles.premiumAdDesc}>Jogue sem propagandas e apoie o Truco-Play!</Text>
+              
+              <View style={styles.premiumPlansRow}>
+                <TouchableOpacity style={styles.premiumPlanCard} onPress={() => alert('Integração de pagamento em breve!')}>
+                  <Text style={styles.planName}>Mensal</Text>
+                  <Text style={styles.planPrice}>R$ 9,90</Text>
+                  <Text style={styles.planDetail}>Por Mês</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.premiumPlanCard, styles.premiumPlanCardHighlight]} onPress={() => alert('Integração de pagamento em breve!')}>
+                  <View style={styles.bestValueTag}><Text style={styles.bestValueText}>MELHOR CUSTO</Text></View>
+                  <Text style={styles.planName}>Trimestral</Text>
+                  <Text style={styles.planPrice}>R$ 24,90</Text>
+                  <Text style={styles.planDetail}>Apenas R$ 8,30/mês</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <FlatList
             data={tables}
             keyExtractor={(item) => item.id}
@@ -322,6 +344,17 @@ const styles = StyleSheet.create({
   premiumToggle: { backgroundColor: 'rgba(0,0,0,0.3)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 6, alignItems: 'center', marginTop: 4 },
   premiumToggleDisabled: { opacity: 0.5 },
   premiumToggleText: { color: '#fbbf24', fontWeight: '600', fontSize: 13 },
+  premiumAdContainer: { backgroundColor: 'rgba(56, 189, 248, 0.1)', margin: 16, marginTop: 12, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.3)', alignItems: 'center' },
+  premiumAdTitle: { color: '#fbbf24', fontSize: 16, fontWeight: '800', marginBottom: 4 },
+  premiumAdDesc: { color: '#e2e8f0', fontSize: 12, textAlign: 'center', marginBottom: 16 },
+  premiumPlansRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  premiumPlanCard: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  premiumPlanCardHighlight: { borderColor: '#fbbf24', backgroundColor: 'rgba(251, 191, 36, 0.1)' },
+  planName: { color: '#94a3b8', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
+  planPrice: { color: '#fff', fontSize: 18, fontWeight: '900', marginBottom: 2 },
+  planDetail: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
+  bestValueTag: { position: 'absolute', top: -10, backgroundColor: '#fbbf24', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  bestValueText: { color: '#000', fontSize: 9, fontWeight: '900' },
   tableCard: {
     backgroundColor: 'rgba(0,0,0,0.3)',
     borderWidth: 1,

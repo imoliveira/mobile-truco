@@ -232,6 +232,9 @@ export default function AuthScreen() {
             Veja também nossa política de{' '}
             <Text style={styles.legalLink} onPress={() => openLegal('safeplay')}>Jogo Leve Curtição Sem Stress</Text>.
           </Text>
+          <Text style={styles.supportText}>
+            Suporte: <Text style={styles.supportEmail}>ivan.oliveira.it@gmail.com</Text>
+          </Text>
         </View>
       </ScrollView>
 
@@ -302,7 +305,9 @@ const styles = StyleSheet.create({
   googleBtnText: { color: '#333', fontWeight: '800', fontSize: 16 },
   devContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 10, width: '100%' },
   guestBtn: { flex: 1, backgroundColor: '#10b981', paddingVertical: 10 },
-  legalFooter: { marginTop: 40, paddingHorizontal: 10 },
+  legalFooter: { marginTop: 40, paddingHorizontal: 10, paddingBottom: 20 },
   legalText: { color: '#64748b', fontSize: 12, textAlign: 'center', lineHeight: 18 },
   legalLink: { color: '#94a3b8', textDecorationLine: 'underline', fontWeight: 'bold' },
+  supportText: { color: '#64748b', fontSize: 12, textAlign: 'center', marginTop: 15 },
+  supportEmail: { color: '#38bdf8', fontWeight: 'bold' },
 });
