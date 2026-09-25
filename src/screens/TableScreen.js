@@ -437,17 +437,26 @@ export default function TableScreen({ route, navigation }) {
           <View style={styles.trucoModal}>
             <Text style={styles.trucoModalTitle}>TRUCO!</Text>
             <Text style={styles.trucoModalText}>{trucoRequest.from} pediu Truco (Vale {trucoRequest.value})</Text>
-            <View style={styles.trucoTimerContainer}>
-              <Text style={styles.trucoTimerText}>⏳ {trucoRequest.timeLeft}s</Text>
-            </View>
-            <View style={styles.trucoBtns}>
-              <TouchableOpacity style={[styles.btn, styles.btnDanger]} onPress={() => handleRespondTruco(false)}>
-                <Text style={styles.btnText}>CORRER</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, styles.btnSuccess]} onPress={() => handleRespondTruco(true)}>
-                <Text style={styles.btnText}>ACEITAR</Text>
-              </TouchableOpacity>
-            </View>
+            
+            {trucoRequest.askerTeam !== myTeam ? (
+              <>
+                <View style={styles.trucoTimerContainer}>
+                  <Text style={styles.trucoTimerText}>⏳ {trucoRequest.timeLeft}s</Text>
+                </View>
+                <View style={styles.trucoBtns}>
+                  <TouchableOpacity style={[styles.btn, styles.btnDanger]} onPress={() => handleRespondTruco(false)}>
+                    <Text style={styles.btnText}>CORRER</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.btn, styles.btnSuccess]} onPress={() => handleRespondTruco(true)}>
+                    <Text style={styles.btnText}>ACEITAR</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <Text style={[styles.trucoModalText, { marginTop: 10, color: '#94a3b8' }]}>
+                Aguardando o adversário responder...
+              </Text>
+            )}
           </View>
         </View>
       )}
