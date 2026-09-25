@@ -133,7 +133,9 @@ export default function TableScreen({ route, navigation }) {
   // Timer truco
   useEffect(() => {
     let interval;
-    if (trucoRequest) {
+    const myTeam = table?.players?.findIndex(p => p.username === username) % 2 === 0 ? 'team1' : 'team2';
+    
+    if (trucoRequest && trucoRequest.askerTeam !== myTeam) {
       interval = setInterval(() => {
         setTrucoRequest((prev) => {
           if (!prev) return null;
@@ -147,7 +149,7 @@ export default function TableScreen({ route, navigation }) {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [trucoRequest, socket, tableId]);
+  }, [trucoRequest, socket, tableId, table, username]);
 
   useEffect(() => {
     if (!socket) return;
@@ -184,10 +186,8 @@ export default function TableScreen({ route, navigation }) {
       setPlayedCards(prev => [...prev, { player, card }]);
     });
 
-    socket.on('truco_requested', ({ from, value }) => {
-      if (from !== username) {
-        setTrucoRequest({ from, value, timeLeft: 15 });
-      }
+    socket.on('truco_requested', ({ from, value, askerTeam }) => {
+      setTrucoRequest({ from, value, timeLeft: 15, askerTeam });
     });
 
     // Chat events

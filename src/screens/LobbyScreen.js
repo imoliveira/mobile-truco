@@ -34,6 +34,7 @@ export default function LobbyScreen({ navigation }) {
 
   const [userStats, setUserStats] = useState({ vitorias: 0, derrotas: 0, partidas: 0, xp: 0, avatar: '' });
   const [globalRanking, setGlobalRanking] = useState([]);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   useEffect(() => {
     if (!socket) return;
@@ -44,17 +45,20 @@ export default function LobbyScreen({ navigation }) {
     const onReceiveMessage = (msg) => setChatMessages((prev) => [...prev, msg]);
     const onUserStats = (stats) => setUserStats(stats);
     const onGlobalRanking = (ranking) => setGlobalRanking(ranking);
+    const onOnlineCount = (count) => setOnlineCount(count);
 
     socket.on('update_tables', onUpdateTables);
     socket.on('receive_message', onReceiveMessage);
     socket.on('user_stats', onUserStats);
     socket.on('global_ranking', onGlobalRanking);
+    socket.on('online_count', onOnlineCount);
 
     return () => {
       socket.off('update_tables', onUpdateTables);
       socket.off('receive_message', onReceiveMessage);
       socket.off('user_stats', onUserStats);
       socket.off('global_ranking', onGlobalRanking);
+      socket.off('online_count', onOnlineCount);
     };
   }, [socket, username]);
 
@@ -102,6 +106,7 @@ export default function LobbyScreen({ navigation }) {
           <Text style={styles.statText}>🏆 {userStats.vitorias}</Text>
           <Text style={styles.statText}>💔 {userStats.derrotas}</Text>
           <Text style={styles.statText}>🎮 {userStats.partidas}</Text>
+          <Text style={[styles.statText, { color: '#10b981', marginLeft: 10 }]}>🟢 {onlineCount} Online</Text>
         </View>
       </View>
 
