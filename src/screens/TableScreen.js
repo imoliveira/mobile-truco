@@ -154,7 +154,8 @@ export default function TableScreen({ route, navigation }) {
   useEffect(() => {
     if (!socket) return;
 
-    socket.emit('join_table', tableId);
+    // Emite join passando também o username para caso de reconexão
+    socket.emit('join_table', { tableId, username });
 
     socket.on('table_update', (updatedTable) => {
       setTable(updatedTable);
@@ -368,7 +369,7 @@ export default function TableScreen({ route, navigation }) {
         <View style={styles.myHand}>
           {hand.map((card, index) => (
             <Animated.View key={index} style={{ transform: [{ translateY }, { rotate }] }}>
-              <Card card={card} onPress={() => handlePlayCard(card, index)} disabled={!myTurn || trucoRequest} />
+              <Card card={card} onPress={() => handlePlayCard(card, index)} disabled={!myTurn || !!trucoRequest} />
             </Animated.View>
           ))}
         </View>
