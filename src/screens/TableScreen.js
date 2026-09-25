@@ -74,7 +74,7 @@ export default function TableScreen({ route, navigation }) {
     let soundFile;
     if (soundId === 'goofy') soundFile = require('../../sons/goofy-laughh.mp3');
     else if (soundId === 'ohno') soundFile = require('../../sons/oh-no-meme.mp3');
-    else if (soundId === 'pirates') soundFile = require('../../sons/pirates.mp3');
+    else if (soundId === 'pirates') soundFile = require('../../sons/duck-patos.mp3');
 
     if (!soundFile) return;
 
@@ -202,7 +202,7 @@ export default function TableScreen({ route, navigation }) {
 
     socket.on('receive_troll_sound', ({ user, soundId }) => {
       playSound(soundId);
-      const emoji = soundId === 'goofy' ? '🤣' : soundId === 'ohno' ? '😱' : '🏴‍☠️';
+      const emoji = soundId === 'goofy' ? '🤣' : soundId === 'ohno' ? '😱' : '🦆';
       const newEmote = { id: Date.now().toString() + Math.random(), emoji, user };
       setActiveEmotes(prev => [...prev, newEmote]);
     });
@@ -488,7 +488,7 @@ export default function TableScreen({ route, navigation }) {
             <Text style={styles.floatingTrollText}>😱</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.floatingTrollBtn, trollCooldown > 0 && styles.trollBtnDisabled]} onPress={() => handleTrollSound('pirates')} disabled={trollCooldown > 0}>
-            <Text style={styles.floatingTrollText}>🏴‍☠️</Text>
+            <Text style={styles.floatingTrollText}>🦆</Text>
           </TouchableOpacity>
           {trollCooldown > 0 && (
             <Text style={styles.trollCooldownText}>{trollCooldown}s</Text>
