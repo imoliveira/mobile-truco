@@ -8,6 +8,18 @@ import GameControls from '../components/GameControls';
 
 const QUICK_EMOTES = ['🦆', '🦆🦆🦆', '🤡', '🤣', '🤬'];
 
+const AVAILABLE_SIGNALS = [
+  { emoji: '😜', label: 'Zap' },
+  { emoji: '😗', label: 'Copas' },
+  { emoji: '🤨', label: 'Espadas' },
+  { emoji: '😒', label: 'Ouros' },
+  { emoji: '😤', label: 'Pica-fumo' },
+  { emoji: '1️⃣', label: '1' },
+  { emoji: '2️⃣', label: '2' },
+  { emoji: '3️⃣', label: '3' },
+  { emoji: '🤷', label: 'Nada' },
+];
+
 const FloatingEmote = ({ emote, onComplete }) => {
   const anim = useRef(new Animated.Value(0)).current;
   const randomX = useRef((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 60 + 40)).current; // Deriva de 40 a 100 pixels
@@ -47,7 +59,7 @@ export default function TableScreen({ route, navigation }) {
   const [hand, setHand] = useState([]);
   const [playedCards, setPlayedCards] = useState([]);
   const [myTurn, setMyTurn] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(20);
   const [isHidingCard, setIsHidingCard] = useState(false);
   const [trucoRequest, setTrucoRequest] = useState(null);
   const [sound, setSound] = useState();
@@ -96,6 +108,7 @@ export default function TableScreen({ route, navigation }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [activeEmotes, setActiveEmotes] = useState([]);
+  const [activeSignals, setActiveSignals] = useState({});
   const scrollViewRef = useRef();
 
   const handRef = useRef(hand);
@@ -109,7 +122,7 @@ export default function TableScreen({ route, navigation }) {
   useEffect(() => {
     let interval;
     if (myTurn && !trucoRequest) {
-      setTimeLeft(15);
+      setTimeLeft(20);
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -125,7 +138,7 @@ export default function TableScreen({ route, navigation }) {
         });
       }, 1000);
     } else {
-      setTimeLeft(15);
+      setTimeLeft(20);
     }
     return () => clearInterval(interval);
   }, [myTurn, trucoRequest]);
@@ -188,7 +201,7 @@ export default function TableScreen({ route, navigation }) {
     });
 
     socket.on('truco_requested', ({ from, value, askerTeam }) => {
-      setTrucoRequest({ from, value, timeLeft: 15, askerTeam });
+      setTrucoRequest({ from, value, timeLeft: 20, askerTeam });
     });
 
     // Chat events
@@ -208,6 +221,17 @@ export default function TableScreen({ route, navigation }) {
       setActiveEmotes(prev => [...prev, newEmote]);
     });
 
+    socket.on('show_signal', ({ user, signal }) => {
+      setActiveSignals(prev => ({ ...prev, [user]: signal }));
+      setTimeout(() => {
+        setActiveSignals(prev => {
+          const next = { ...prev };
+          delete next[user];
+          return next;
+        });
+      }, 2500);
+    });
+
     return () => {
       socket.emit('leave_table', tableId);
       socket.off('table_update');
@@ -217,6 +241,7 @@ export default function TableScreen({ route, navigation }) {
       socket.off('receive_message');
       socket.off('receive_emote');
       socket.off('receive_troll_sound');
+      socket.off('show_signal');
     };
   }, [socket, tableId, username, dealAnim]);
 
@@ -261,6 +286,19 @@ export default function TableScreen({ route, navigation }) {
     setIsChatOpen(false); // Optionally close chat when sending emote
   };
 
+  const handleSendSignal = (emoji) => {
+    socket.emit('send_signal', { tableId, emoji });
+    socket.emit('send_emote', { tableId, emoji });
+    setActiveSignals(prev => ({ ...prev, [username]: emoji }));
+    setTimeout(() => {
+      setActiveSignals(prev => {
+        const next = { ...prev };
+        delete next[username];
+        return next;
+      });
+    }, 2500);
+  };
+
   const removeEmote = (id) => {
     setActiveEmotes(prev => prev.filter(e => e.id !== id));
   };
@@ -273,8 +311,13 @@ export default function TableScreen({ route, navigation }) {
     );
   }
 
-  const otherPlayer = table.players.find(p => p.username !== username);
-  const myTeam = (table.players.findIndex(p => p.username === username) % 2 === 0) ? 'team1' : 'team2';
+  const myIndex = table.players.findIndex(p => p.username === username);
+  const is2x2 = table.mode === '2x2' || table.players.length > 2;
+  const partner = is2x2 && myIndex !== -1 ? table.players[(myIndex + 2) % 4] : null;
+  const leftPlayer = is2x2 && myIndex !== -1 ? table.players[(myIndex + 1) % 4] : null;
+  const rightPlayer = is2x2 && myIndex !== -1 ? table.players[(myIndex + 3) % 4] : null;
+  const otherPlayer = is2x2 ? partner : table.players.find(p => p.username !== username);
+  const myTeam = (myIndex !== -1 ? myIndex % 2 === 0 : false) ? 'team1' : 'team2';
   const canTruco = table.lastTrucoTeam !== myTeam && table.currentValue < 12 && table.score?.team1 !== 11 && table.score?.team2 !== 11;
 
   const translateY = dealAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 0] });
@@ -303,12 +346,52 @@ export default function TableScreen({ route, navigation }) {
         <Text style={styles.tableValue}>VALE: {table.currentValue || 1}</Text>
       </View>
 
+      {/* Painel Mandar Sinal */}
+      <View style={styles.signalsPanel}>
+        <Text style={styles.signalsTitle}>Mandar Sinal:</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.signalsScroll}
+        >
+          {AVAILABLE_SIGNALS.map((sig, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.signalBtn}
+              onPress={() => handleSendSignal(sig.emoji)}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.signalBtnEmoji}>{sig.emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <View style={styles.felt}>
         <PlayerSlot
           player={otherPlayer}
           position="top"
           isTurn={table.currentTurn === otherPlayer?.username}
+          signal={otherPlayer ? activeSignals[otherPlayer.username] : null}
         />
+
+        {leftPlayer && (
+          <PlayerSlot
+            player={leftPlayer}
+            position="left"
+            isTurn={table.currentTurn === leftPlayer.username}
+            signal={activeSignals[leftPlayer.username]}
+          />
+        )}
+
+        {rightPlayer && (
+          <PlayerSlot
+            player={rightPlayer}
+            position="right"
+            isTurn={table.currentTurn === rightPlayer.username}
+            signal={activeSignals[rightPlayer.username]}
+          />
+        )}
 
         {/* Emotes Animados */}
         {activeEmotes.map(emote => (
@@ -352,6 +435,7 @@ export default function TableScreen({ route, navigation }) {
             player={{ username, avatar: table.players.find(p => p.username === username)?.avatar }}
             position="bottom"
             isTurn={myTurn}
+            signal={activeSignals[username]}
           />
         </View>
 
@@ -554,11 +638,51 @@ const styles = StyleSheet.create({
   timerText: { color: '#34d399', fontWeight: 'bold', fontSize: 10 },
   timerTextDanger: { color: '#ef4444' },
   
+  // Signals Panel
+  signalsPanel: {
+    backgroundColor: '#0c1322',
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    width: '100%',
+  },
+  signalsTitle: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  signalsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '100%',
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  signalBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signalBtnEmoji: {
+    fontSize: 19,
+  },
+
   // Floating Emote
   floatingEmote: { position: 'absolute', fontSize: 80, zIndex: 1000, top: '40%', alignSelf: 'center', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 10 },
   
   // Chat Button
-  chatButton: { position: 'absolute', top: 80, right: 20, backgroundColor: '#0f172a', width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#38bdf8', elevation: 5 },
+  chatButton: { position: 'absolute', top: 145, right: 20, backgroundColor: '#0f172a', width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#38bdf8', elevation: 5 },
   chatButtonText: { fontSize: 24 },
   
   // Chat Overlay
@@ -585,7 +709,7 @@ const styles = StyleSheet.create({
   chatSendBtnText: { color: '#0f172a', fontSize: 18, fontWeight: 'bold', marginLeft: 2 },
 
   // Truco Modal
-  trucoOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
+  trucoOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', paddingTop: 100, alignItems: 'center', zIndex: 100 },
   trucoModal: { backgroundColor: '#1e293b', padding: 24, borderRadius: 16, alignItems: 'center', width: '85%', borderWidth: 2, borderColor: '#fbbf24' },
   trucoModalTitle: { color: '#fbbf24', fontSize: 32, fontWeight: '900', marginBottom: 8 },
   trucoModalText: { color: '#fff', fontSize: 16, marginBottom: 20, textAlign: 'center' },
@@ -599,7 +723,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '900', fontSize: 12 },
 
   // Troll Floating Buttons
-  floatingTrollContainer: { position: 'absolute', top: 80, left: 20, gap: 12, zIndex: 90, alignItems: 'center' },
+  floatingTrollContainer: { position: 'absolute', top: 145, left: 20, gap: 12, zIndex: 90, alignItems: 'center' },
   floatingTrollBtn: { backgroundColor: '#0f172a', width: 45, height: 45, borderRadius: 25, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#38bdf8', elevation: 5 },
   trollBtnDisabled: { borderColor: '#64748b', opacity: 0.5 },
   floatingTrollText: { fontSize: 20 },

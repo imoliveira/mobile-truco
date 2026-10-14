@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
-export default function PlayerSlot({ player, isTurn, position }) {
+export default function PlayerSlot({ player, isTurn, position, signal }) {
   if (!player) {
     return (
       <View style={[styles.container, styles[position]]}>
@@ -14,6 +14,11 @@ export default function PlayerSlot({ player, isTurn, position }) {
 
   return (
     <View style={[styles.container, styles[position]]}>
+      {signal ? (
+        <View style={styles.floatingSignal}>
+          <Text style={styles.floatingSignalText}>{signal}</Text>
+        </View>
+      ) : null}
       <View style={[styles.avatarContainer, isTurn && styles.activeAvatar]}>
         <Image
           source={player.avatar ? { uri: player.avatar } : require('../../assets/robologo.jpg')}
@@ -41,6 +46,29 @@ const styles = StyleSheet.create({
   top: { top: 10, alignSelf: 'center' },
   left: { left: 10, top: '40%' },
   right: { right: 10, top: '40%' },
+
+  floatingSignal: {
+    position: 'absolute',
+    top: -12,
+    right: 2,
+    zIndex: 100,
+    backgroundColor: '#0f172a',
+    borderWidth: 2,
+    borderColor: '#38bdf8',
+    borderRadius: 18,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 10,
+    shadowColor: '#38bdf8',
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  floatingSignalText: {
+    fontSize: 20,
+  },
 
   avatarContainer: {
     padding: 3,
